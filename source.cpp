@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 #include <vector>
 #include <chrono>
 #include "readmap.cpp"
@@ -16,6 +17,7 @@ const int OBJECT_SIZE = (SCREEN_WIDTH / 3) / KEY_AMOUNT;
 
 SDL_Window* gWindow = NULL;
 SDL_Renderer* gRenderer = NULL;
+Mix_Music *gMusic = NULL;
 
 class Note {
     public:
@@ -38,6 +40,7 @@ class Note {
 
         void render() {
             SDL_Rect noteRect = {x, y, OBJECT_SIZE, OBJECT_SIZE / 2};
+            SDL_RenderFillRect(gRenderer, &noteRect);
             SDL_RenderDrawRect(gRenderer, &noteRect);
         }
     
@@ -48,21 +51,26 @@ class Note {
 void renderPlayfield() {
     SDL_RenderDrawLine(gRenderer, PLAYFIELD_LEFT_BOUND, 0, PLAYFIELD_LEFT_BOUND, SCREEN_HEIGHT);
     SDL_RenderDrawLine(gRenderer, PLAYFIELD_RIGHT_BOUND, 0, PLAYFIELD_RIGHT_BOUND, SCREEN_HEIGHT);
+    SDL_RenderDrawLine(gRenderer, PLAYFIELD_LEFT_BOUND, SCREEN_HEIGHT - (SCREEN_HEIGHT / 8), PLAYFIELD_RIGHT_BOUND, SCREEN_HEIGHT - (SCREEN_HEIGHT / 8));
 }
 
 void init() {
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-    gWindow = SDL_CreateWindow("osu! Map Reader", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    gWindow = SDL_CreateWindow("mania conversion", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED);
     SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0x00);
+    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 }
 
 void close() {
+    Mix_FreeMusic(gMusic);
     SDL_DestroyRenderer(gRenderer);
     SDL_DestroyWindow(gWindow);
     gWindow = NULL;
     gRenderer = NULL;
+    gMusic = NULL;
+    Mix_Quit();
     SDL_Quit();
 }
 
@@ -73,7 +81,7 @@ int main(int argc, char* args[]) {
     SDL_Event event;
 
     std::vector<hitObject> hitObjects;
-    std::string fileLocation = "maps/Vickeblanka - Black Rover (TV Size) (Sotarks) [Extreme].osu";
+    std::string fileLocation = "";
     hitObjects = getHitObjects(fileLocation);
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -83,7 +91,18 @@ int main(int argc, char* args[]) {
     std::vector<Note> notes;
     std::vector<Note>::iterator it = notes.begin();
 
+    gMusic = Mix_LoadMUS("");
+    Mix_VolumeMusic(10);
+    Mix_PlayMusic(gMusic, -1);
+
+    Uint64 now = SDL_GetPerformanceCounter();
+    Uint64 last = 0;
+    double delta = 0;
+
     while(!quit) {
+        last = now;
+        now = SDL_GetPerformanceCounter();
+        delta = ((now-last) * 1000 / (double)SDL_GetPerformanceFrequency());
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         int elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
@@ -97,7 +116,7 @@ int main(int argc, char* args[]) {
         SDL_RenderClear(gRenderer);
 
         if(currentIndex + 1 <= hitObjects.size()) {
-            if(hitObjects[currentIndex + 1].time <= elapsedTime) {
+            if(hitObjects[currentIndex + 1].time - SCREEN_HEIGHT <= elapsedTime) {
                 hitObject object = hitObjects[currentIndex + 1];
                 currentIndex++;
                 Note note;
