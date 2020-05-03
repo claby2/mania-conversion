@@ -15,12 +15,16 @@ const float SCROLL_SPEED = 1.0;
 
 const int OBJECT_SIZE = (SCREEN_WIDTH / 3) / KEY_AMOUNT;
 
+const int JUDGEMENT_LINE = SCREEN_HEIGHT - (SCREEN_HEIGHT / 4);
+
 SDL_Window* gWindow = NULL;
 SDL_Renderer* gRenderer = NULL;
 Mix_Music *gMusic = NULL;
 
 class Note {
     public:
+        float x, y;
+
         Note() {
             y = -OBJECT_SIZE;
         }
@@ -43,15 +47,22 @@ class Note {
             SDL_RenderFillRect(gRenderer, &noteRect);
             SDL_RenderDrawRect(gRenderer, &noteRect);
         }
-    
-    private:
-        float x, y;
 };
 
 void renderPlayfield() {
     SDL_RenderDrawLine(gRenderer, PLAYFIELD_LEFT_BOUND, 0, PLAYFIELD_LEFT_BOUND, SCREEN_HEIGHT);
     SDL_RenderDrawLine(gRenderer, PLAYFIELD_RIGHT_BOUND, 0, PLAYFIELD_RIGHT_BOUND, SCREEN_HEIGHT);
-    SDL_RenderDrawLine(gRenderer, PLAYFIELD_LEFT_BOUND, SCREEN_HEIGHT - (SCREEN_HEIGHT / 8), PLAYFIELD_RIGHT_BOUND, SCREEN_HEIGHT - (SCREEN_HEIGHT / 8));
+    SDL_RenderDrawLine(gRenderer, PLAYFIELD_LEFT_BOUND, JUDGEMENT_LINE, PLAYFIELD_RIGHT_BOUND, JUDGEMENT_LINE);
+}
+
+void clickNote(std::vector<Note> &notes, int positionIndex) {
+    float channelX = PLAYFIELD_LEFT_BOUND + (positionIndex * OBJECT_SIZE);
+    for(int i = 0; i < notes.size(); i++) {
+        if(notes[i].x == channelX && notes[i].y >= JUDGEMENT_LINE) {
+            notes.erase(notes.begin() + i);
+            return;
+        }
+    }
 }
 
 void init() {
@@ -110,13 +121,21 @@ int main(int argc, char* args[]) {
             if(event.type == SDL_QUIT) {
                 quit = true;
             }
+            if(event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+                switch(event.key.keysym.sym) {
+                    case SDLK_d: clickNote(notes, 0); break;
+                    case SDLK_f: clickNote(notes, 1); break;
+                    case SDLK_j: clickNote(notes, 2); break;
+                    case SDLK_k: clickNote(notes, 3); break;
+                }
+            }
         }
 
         SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0x00);
         SDL_RenderClear(gRenderer);
 
         if(currentIndex + 1 <= hitObjects.size()) {
-            if(hitObjects[currentIndex + 1].time - ((SCREEN_HEIGHT - (SCREEN_HEIGHT / 8) - (-OBJECT_SIZE)) / (SCROLL_SPEED)) <= elapsedTime) {
+            if(hitObjects[currentIndex + 1].time - ((JUDGEMENT_LINE - (-OBJECT_SIZE)) / (SCROLL_SPEED)) <= elapsedTime) {
                 hitObject object = hitObjects[currentIndex + 1];
                 currentIndex++;
                 Note note;
