@@ -11,7 +11,7 @@ const int PLAYFIELD_LEFT_BOUND = SCREEN_WIDTH / 3;
 const int PLAYFIELD_RIGHT_BOUND = (2 * SCREEN_WIDTH) / 3;
 
 const int KEY_AMOUNT = 4;
-const float SCROLL_SPEED = 0.1;
+const float SCROLL_SPEED = 1.0;
 
 const int OBJECT_SIZE = (SCREEN_WIDTH / 3) / KEY_AMOUNT;
 
@@ -34,8 +34,8 @@ class Note {
             return y > SCREEN_HEIGHT;
         }
 
-        void move() {
-            y += SCROLL_SPEED;
+        void move(double delta) {
+            y += SCROLL_SPEED * delta;
         }
 
         void render() {
@@ -92,7 +92,7 @@ int main(int argc, char* args[]) {
     std::vector<Note>::iterator it = notes.begin();
 
     gMusic = Mix_LoadMUS("");
-    Mix_VolumeMusic(10);
+    Mix_VolumeMusic(5);
     Mix_PlayMusic(gMusic, -1);
 
     Uint64 now = SDL_GetPerformanceCounter();
@@ -116,7 +116,7 @@ int main(int argc, char* args[]) {
         SDL_RenderClear(gRenderer);
 
         if(currentIndex + 1 <= hitObjects.size()) {
-            if(hitObjects[currentIndex + 1].time - SCREEN_HEIGHT <= elapsedTime) {
+            if(hitObjects[currentIndex + 1].time - ((SCREEN_HEIGHT - (SCREEN_HEIGHT / 8) - (-OBJECT_SIZE)) / (SCROLL_SPEED)) <= elapsedTime) {
                 hitObject object = hitObjects[currentIndex + 1];
                 currentIndex++;
                 Note note;
@@ -134,7 +134,7 @@ int main(int argc, char* args[]) {
                 notes.erase(notes.begin() + i);
                 continue;
             }
-            notes[i].move();
+            notes[i].move(delta);
             notes[i].render();
         }
 
