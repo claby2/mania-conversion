@@ -10,7 +10,7 @@ SDL2_mixer
 ## Build and Run
 1. Add .osu file and beatmap audio to directory
 2. Edit `fileLocation` in `source.cpp` with .osu file location
-3. Edit `gMusic` value by inserting beatmap audio location as an argument in `Mix_LoadMUS("")`
+3. Edit `gMusic` in `source.cpp` by inserting beatmap audio location as an argument in `Mix_LoadMUS("")`
 3. Compile and run:
 ```
 $ g++ source.cpp -w -lSDL2main -lSDL2 -lSDL2_mixer -o source
